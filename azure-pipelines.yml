@@ -1,0 +1,73 @@
+trigger:
+  branches:
+    include:
+    - master
+  paths:
+    include:
+    - src/*
+    - azure-pipelines.yml
+    - .gitignore
+
+pr:
+  autoCancel: true
+  branches:
+    include:
+    - 'master'
+  paths:
+    include:
+    - src/*
+    - azure-pipelines.yml
+    - .gitignore
+
+jobs:
+- job: blazor_app
+  displayName: Blazor App
+  timeoutInMinutes: 15
+  workspace:
+    clean: all
+  strategy:
+      maxParallel: 1
+  pool:
+      vmImage: ubuntu-16.04
+  variables:
+    buildConfiguration: 'Release'
+    restoreBuildProjects: '**/*.csproj'
+    testProjects: '**/*Test.csproj'
+    publishProject: '**/JsonValidate.csproj'
+    dotnetSDK: 3.0.100-preview7-012821
+  steps:
+  - checkout: self
+    clean: true
+  - task: DotNetCoreInstaller@0
+    displayName: 'Use .NET Core sdk'
+    inputs:
+      version: $(dotnetSDK)
+  - task: DotNetCoreCLI@2
+    displayName: Restore
+    inputs:
+      command: restore
+      projects: $(restoreBuildProjects)
+  - task: DotNetCoreCLI@2
+    displayName: Build
+    inputs:
+      projects: $(restoreBuildProjects)
+      arguments: --configuration $(buildConfiguration)
+  - task: DotNetCoreCLI@2
+    displayName: Test
+    inputs:
+      command: test
+      projects: $(testProjects)
+      arguments: --configuration $(buildConfiguration)
+  - task: DotNetCoreCLI@2
+    displayName: Publish
+    inputs:
+      command: publish
+      projects: $(publishProject)
+      arguments: --configuration $(buildConfiguration) --output $(Build.ArtifactStagingDirectory)
+      publishWebProjects: true
+      zipAfterPublish: false
+    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/master'))
+  - task: PublishBuildArtifacts@1
+    displayName: Artifacts
+    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/master'))
+

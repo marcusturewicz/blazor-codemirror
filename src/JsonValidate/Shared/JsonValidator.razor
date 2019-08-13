@@ -1,0 +1,66 @@
+@using System.Text.Json
+@using JsonValidate.Clipboard
+@inject IJSRuntime JsRuntime;
+
+<div>
+    <div class="form-group">
+        <label for="text">Enter JSON</label>
+        <textarea class="form-control json-text" id="text" rows="12" @bind="@Input"></textarea>
+    </div>
+    <div class="form-group">
+        <button class="btn btn-primary" @onclick="@Validate">Validate</button>
+        <button class="btn btn-secondary" @onclick="@Clear">Clear</button>
+        <button class="btn btn-info" @onclick="@Copy">Copy</button>
+    </div>    
+    @if (IsError)
+    {
+        <div class="alert alert-danger" role="alert">
+            @Message
+        </div>
+    }
+    else if (!string.IsNullOrEmpty(Message)) {
+        <div class="alert alert-success" role="alert">
+            @Message
+        </div>
+    }
+</div>
+
+@code {
+    string Input { get; set; }
+    bool IsError { get; set; }
+    string Message { get; set; }
+    int LineError { get; set; }
+    int PosError { get; set; }
+    JsonSerializerOptions Options = new JsonSerializerOptions { WriteIndented = true };
+
+    void Validate() {
+        try {
+            if (string.IsNullOrEmpty(Input) || string.IsNullOrWhiteSpace(Input)) {
+                throw new ArgumentException("Error: input was empty.");
+            }
+            var jsonDoc = JsonSerializer.Deserialize<object>(Input);
+            Input = JsonSerializer.Serialize(jsonDoc, Options);
+            IsError = false;
+            Message = "JSON valid!";
+        }
+        catch (Exception e) {
+            IsError = true;
+            Message = e.Message;
+            var lineErrorStart = Message.IndexOf("line");
+            var posErrorStart = Message.IndexOf("position");
+            // For future line/position error handling
+            //LineError = int.Parse(Message.Substring(lineErrorStart + 5, (posErrorStart - 2 - lineErrorStart - 5)));
+            //PosError = int.Parse(Message.Substring(posErrorStart + 9, (Message.Length - 1 - posErrorStart - 9)));
+        }
+    }
+
+    void Clear() {
+        Input = string.Empty;
+        IsError = false;
+        Message = string.Empty;    
+    }
+
+    async void Copy() {
+        await Clipboard.WriteTextAsync(JsRuntime, Input);
+    }
+}
