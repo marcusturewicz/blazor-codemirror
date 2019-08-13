@@ -1,0 +1,20 @@
+﻿@page "/"
+@using Blazor.CodeMirror
+@inject CodeMirror codeMirror;
+
+<h1>Hello, world!</h1>
+
+Welcome to your new app.
+
+<SurveyPrompt Title="How is Blazor working for you?" />
+
+<textarea @ref="myInput"></textarea>
+
+@code {
+    private ElementRef myInput;
+
+    protected override void OnAfterRender()
+    {
+        codeMirror.CreateAsync(myInput, "initial code......");
+    }
+}
